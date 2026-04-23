@@ -132,6 +132,7 @@
       <div style="font-size:12px;color:var(--muted);margin-top:4px" id="level-sub"></div>
     </div>
     <div id="start-area"></div>
+    <button class="btn btn-outline" onclick="shareCard()" style="margin-bottom:16px;display:none" id="share-btn">📤 Share My Progress</button>
     <div class="card" id="milestone-card" style="display:none">
       <h3>🎯 Next Milestone</h3>
       <p id="milestone-text"></p>
@@ -346,6 +347,7 @@ function render() {
 
   // Milestone
   const mc = document.getElementById('milestone-card');
+  document.getElementById('share-btn').style.display = start ? '' : 'none';
   if (next && start) {
     mc.style.display = '';
     const left = next.days - d;
@@ -471,6 +473,88 @@ document.querySelectorAll('nav button').forEach(btn => {
 document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
 });
+
+// Share card
+function shareCard() {
+  const d = daysSince(getStartDate());
+  const lvl = getLevel(d);
+  const earned = BADGES.filter(b => d >= b.days);
+  const c = document.createElement('canvas');
+  const W = 600, H = 600;
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+
+  // Background gradient
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#0f1923'); bg.addColorStop(1, '#1a2733');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // Border accent
+  ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 4;
+  ctx.roundRect(12, 12, W - 24, H - 24, 24); ctx.stroke();
+
+  // Title
+  ctx.textAlign = 'center';
+  ctx.font = '600 22px -apple-system, sans-serif';
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('🌱 BetterDays', W / 2, 52);
+
+  // Days
+  ctx.font = '800 96px -apple-system, sans-serif';
+  ctx.fillStyle = '#4ade80';
+  ctx.fillText(d, W / 2, 180);
+  ctx.font = '400 20px -apple-system, sans-serif';
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('days gamble-free', W / 2, 210);
+
+  // Level
+  ctx.font = '700 28px -apple-system, sans-serif';
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillText(lvl.name, W / 2, 270);
+  ctx.font = '400 16px -apple-system, sans-serif';
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText(lvl.msg, W / 2, 298);
+
+  // Earned badges
+  if (earned.length) {
+    ctx.font = '600 14px -apple-system, sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('BADGES EARNED', W / 2, 345);
+    const cols = Math.min(earned.length, 5);
+    const spacing = 70;
+    const startX = W / 2 - ((cols - 1) * spacing) / 2;
+    earned.slice(-10).forEach((b, i) => {
+      const row = Math.floor(i / 5);
+      const col = i % 5;
+      const rowCount = Math.min(earned.slice(-10).length - row * 5, 5);
+      const rx = W / 2 - ((rowCount - 1) * spacing) / 2 + col * spacing;
+      const ry = 380 + row * 80;
+      ctx.font = '36px -apple-system, sans-serif';
+      ctx.fillText(b.icon, rx, ry);
+      ctx.font = '400 11px -apple-system, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(b.name, rx, ry + 22);
+    });
+  }
+
+  // Footer
+  ctx.font = '400 13px -apple-system, sans-serif';
+  ctx.fillStyle = '#4ade80';
+  ctx.fillText('One day at a time 💚', W / 2, H - 30);
+
+  c.toBlob(async blob => {
+    const file = new File([blob], 'betterdays-progress.png', { type: 'image/png' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'My BetterDays Progress' }); } catch {}
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'betterdays-progress.png';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  }, 'image/png');
+}
 
 // Init
 newQuote();
