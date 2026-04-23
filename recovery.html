@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterDays — Your Recovery Companion</title>
+<style>
+  :root {
+    --bg: #0f1923; --card: #1a2733; --accent: #4ade80; --accent2: #22d3ee;
+    --warn: #f87171; --text: #e2e8f0; --muted: #94a3b8; --border: #334155;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100dvh; }
+  .app { max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
+
+  /* Nav */
+  nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); display: flex; z-index: 10; }
+  nav button { flex: 1; padding: 12px 0 10px; background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: color .2s; }
+  nav button.active, nav button:hover { color: var(--accent); }
+  nav button svg { width: 24px; height: 24px; }
+
+  /* Sections */
+  .section { display: none; } .section.active { display: block; }
+
+  /* Streak */
+  .streak-ring { width: 220px; height: 220px; margin: 24px auto; position: relative; }
+  .streak-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .streak-ring circle { fill: none; stroke-width: 8; cx: 110; cy: 110; r: 100; }
+  .ring-bg { stroke: var(--border); }
+  .ring-fill { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .8s ease; }
+  .streak-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .streak-num { font-size: 56px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .streak-label { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+  .level-bar { background: var(--border); border-radius: 99px; height: 10px; margin: 8px 0 4px; overflow: hidden; }
+  .level-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .6s ease; }
+
+  .card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .card h3 { font-size: 15px; margin-bottom: 8px; }
+  .card p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  .title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .title-row h2 { font-size: 20px; }
+
+  .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .badge { text-align: center; padding: 16px 8px; background: var(--card); border-radius: 16px; opacity: .35; transition: all .3s; }
+  .badge.earned { opacity: 1; }
+  .badge .icon { font-size: 32px; }
+  .badge .name { font-size: 11px; color: var(--muted); margin-top: 6px; display: block; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 24px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: transform .1s, opacity .2s; }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: var(--bg); }
+  .btn-danger { background: var(--warn); color: #fff; }
+  .btn-outline { background: none; border: 1px solid var(--border); color: var(--text); }
+  .btn-sm { padding: 10px 16px; font-size: 13px; width: auto; }
+
+  /* Phone list */
+  .contact { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--card); border-radius: 12px; margin-bottom: 10px; }
+  .contact .avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; color: var(--bg); flex-shrink: 0; }
+  .contact .info { flex: 1; min-width: 0; }
+  .contact .info .cname { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .contact .info .cphone { font-size: 13px; color: var(--muted); }
+  .contact .actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .contact .actions button { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; }
+  .contact .actions button:hover { color: var(--accent); }
+  .contact .actions .del:hover { color: var(--warn); }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 20; align-items: flex-end; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card); border-radius: 20px 20px 0 0; padding: 24px; width: 100%; max-width: 480px; }
+  .modal h3 { margin-bottom: 16px; font-size: 18px; }
+  .modal input { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px; margin-bottom: 12px; outline: none; }
+  .modal input:focus { border-color: var(--accent); }
+  .modal .btn-row { display: flex; gap: 10px; }
+  .modal .btn-row .btn { flex: 1; }
+
+  /* Motivation */
+  .quote-card { background: linear-gradient(135deg, #1e3a2f, #1a2733); border: 1px solid #2d4a3e; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px; }
+  .quote-card .q { font-size: 18px; font-style: italic; line-height: 1.6; margin-bottom: 12px; }
+  .quote-card .author { font-size: 13px; color: var(--accent); }
+
+  .tip-card { padding: 16px; background: var(--card); border-radius: 12px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; }
+  .tip-card .tip-icon { font-size: 24px; flex-shrink: 0; }
+  .tip-card .tip-text { font-size: 14px; color: var(--muted); line-height: 1.5; }
+  .tip-card .tip-text strong { color: var(--text); }
+
+  .helpline { text-align: center; padding: 20px; background: var(--card); border-radius: 16px; margin-top: 16px; }
+  .helpline a { color: var(--accent); text-decoration: none; font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+  .helpline p { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* Confirm */
+  .confirm-text { font-size: 14px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+
+  /* Animations */
+  @keyframes pop { 0% { transform: scale(.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .pop { animation: pop .3s ease; }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+  .empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- HOME -->
+  <div class="section active" id="sec-home">
+    <div style="text-align:center;margin-top:8px">
+      <div style="font-size:28px;font-weight:800;">🌱 BetterDays</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px" id="greeting"></div>
+    </div>
+    <div class="streak-ring">
+      <svg viewBox="0 0 220 220"><circle class="ring-bg"/><circle class="ring-fill" id="ring"/></svg>
+      <div class="streak-center">
+        <div class="streak-num" id="days">0</div>
+        <div class="streak-label">days free</div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:13px;color:var(--muted)">Current Level</div>
+          <div style="font-size:20px;font-weight:700" id="level-name">🌱 Seedling</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:13px;color:var(--muted)">Next level</div>
+          <div style="font-size:14px;font-weight:600" id="next-level">7 days</div>
+        </div>
+      </div>
+      <div class="level-bar"><div class="level-fill" id="level-fill"></div></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px" id="level-sub"></div>
+    </div>
+    <div id="start-area"></div>
+    <div class="card" id="milestone-card" style="display:none">
+      <h3>🎯 Next Milestone</h3>
+      <p id="milestone-text"></p>
+    </div>
+  </div>
+
+  <!-- BADGES -->
+  <div class="section" id="sec-badges">
+    <div class="title-row"><h2>🏆 Badges</h2></div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Earn badges by staying gamble-free. Keep going!</p>
+    <div class="badge-grid" id="badge-grid"></div>
+  </div>
+
+  <!-- PHONE LIST -->
+  <div class="section" id="sec-phone">
+    <div class="title-row">
+      <h2>📞 Phone List</h2>
+      <button class="btn btn-sm btn-primary" onclick="openModal()">+ Add</button>
+    </div>
+    <div id="contact-list"></div>
+  </div>
+
+  <!-- MOTIVATION -->
+  <div class="section" id="sec-motivation">
+    <div class="title-row"><h2>💪 Stay Strong</h2></div>
+    <div class="quote-card">
+      <div class="q" id="quote-text"></div>
+      <div class="author" id="quote-author"></div>
+    </div>
+    <button class="btn btn-outline" onclick="newQuote()" style="margin-bottom:20px">🔄 New Quote</button>
+    <h3 style="margin-bottom:12px">Urge Toolkit</h3>
+    <div class="tip-card"><div class="tip-icon">🧊</div><div class="tip-text"><strong>Delay 15 min.</strong> Urges peak then pass. Set a timer and ride it out.</div></div>
+    <div class="tip-card"><div class="tip-icon">🚶</div><div class="tip-text"><strong>Move your body.</strong> A quick walk changes your brain chemistry fast.</div></div>
+    <div class="tip-card"><div class="tip-icon">📞</div><div class="tip-text"><strong>Call someone.</strong> Open your Phone List and reach out — you're not alone.</div></div>
+    <div class="tip-card"><div class="tip-icon">✍️</div><div class="tip-text"><strong>Write it down.</strong> Journal what triggered the urge. Patterns = power.</div></div>
+    <div class="helpline">
+      <p style="font-size:13px;margin-bottom:8px">National Problem Gambling Helpline</p>
+      <a href="tel:18005224700">1-800-522-4700</a>
+      <p>Free, confidential, 24/7</p>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<nav>
+  <button class="active" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 001 1h3m10-11v10a1 1 0 01-1 1h-3m-4 0v-6a1 1 0 011-1h2a1 1 0 011 1v6"/></svg>Home</button>
+  <button data-tab="badges"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="6"/><path d="M8.5 14.5L7 22l5-3 5 3-1.5-7.5"/></svg>Badges</button>
+  <button data-tab="phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Contacts</button>
+  <button data-tab="motivation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>Motivate</button>
+</nav>
+
+<!-- Add Contact Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Add Contact</h3>
+    <input id="inp-name" placeholder="Name" autocomplete="off"/>
+    <input id="inp-phone" placeholder="Phone number" type="tel" autocomplete="off"/>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContact()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Date Picker Modal -->
+<div class="modal-overlay" id="date-modal">
+  <div class="modal">
+    <h3 id="date-modal-title">Set Your Clean Date</h3>
+    <p class="confirm-text">When did your current gamble-free streak begin?</p>
+    <input id="inp-date" type="date" />
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="closeDate()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDate()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Confirm Modal -->
+<div class="modal-overlay" id="reset-modal">
+  <div class="modal">
+    <h3>Reset Streak?</h3>
+    <p class="confirm-text">No judgment — recovery isn't a straight line. This resets your day count to zero. Your badges stay earned. 💚</p>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="closeReset()">Keep Going</button>
+      <button class="btn btn-danger" onclick="confirmReset()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LEVELS = [
+  { days: 0, name: '🌱 Seedling', msg: 'Every journey starts with a single day.' },
+  { days: 7, name: '🌿 Sprout', msg: 'One whole week — you\'re taking root!' },
+  { days: 14, name: '🌳 Sapling', msg: 'Two weeks strong. Growing taller!' },
+  { days: 30, name: '🌲 Evergreen', msg: 'A full month! You\'re unshakeable.' },
+  { days: 60, name: '⭐ Rising Star', msg: '60 days — you\'re lighting the way.' },
+  { days: 90, name: '🔥 Trailblazer', msg: '90 days! A whole season of freedom.' },
+  { days: 180, name: '🦅 Soaring Eagle', msg: 'Half a year. Look how far you\'ve come.' },
+  { days: 365, name: '👑 Champion', msg: 'ONE YEAR. You are extraordinary.' },
+  { days: 730, name: '💎 Diamond', msg: 'Two years. Truly unbreakable.' },
+];
+
+const BADGES = [
+  { id: 'day1', days: 1, icon: '🌅', name: 'Day One' },
+  { id: 'day3', days: 3, icon: '🔥', name: '3-Day Fire' },
+  { id: 'week1', days: 7, icon: '🌟', name: 'First Week' },
+  { id: 'week2', days: 14, icon: '💪', name: 'Fortnight' },
+  { id: 'month1', days: 30, icon: '🏅', name: '30 Days' },
+  { id: 'month2', days: 60, icon: '🚀', name: '60 Days' },
+  { id: 'month3', days: 90, icon: '🎯', name: '90 Days' },
+  { id: 'half', days: 180, icon: '🦋', name: 'Half Year' },
+  { id: 'year', days: 365, icon: '👑', name: 'One Year' },
+];
+
+const QUOTES = [
+  { q: "The best time to plant a tree was 20 years ago. The second best time is now.", a: "Chinese Proverb" },
+  { q: "You don't have to see the whole staircase, just take the first step.", a: "Martin Luther King Jr." },
+  { q: "Fall seven times, stand up eight.", a: "Japanese Proverb" },
+  { q: "Recovery is not a race. You don't have to feel guilty if it takes you longer than you thought.", a: "Unknown" },
+  { q: "One day at a time. That's all we can ask of ourselves.", a: "Unknown" },
+  { q: "The only impossible journey is the one you never begin.", a: "Tony Robbins" },
+  { q: "Strength doesn't come from what you can do. It comes from overcoming the things you once thought you couldn't.", a: "Rikki Rogers" },
+  { q: "You are allowed to be both a masterpiece and a work in progress simultaneously.", a: "Sophia Bush" },
+  { q: "It does not matter how slowly you go as long as you do not stop.", a: "Confucius" },
+  { q: "Courage isn't having the strength to go on — it's going on when you don't have strength.", a: "Napoleon Bonaparte" },
+];
+
+// State
+const ls = localStorage;
+let editIdx = null;
+
+function getStartDate() { return ls.getItem('bd_start'); }
+function setStartDate(d) { ls.setItem('bd_start', d); }
+function getContacts() { return JSON.parse(ls.getItem('bd_contacts') || '[]'); }
+function setContacts(c) { ls.setItem('bd_contacts', JSON.stringify(c)); }
+
+function daysSince(dateStr) {
+  if (!dateStr) return 0;
+  const diff = Date.now() - new Date(dateStr).getTime();
+  return Math.max(0, Math.floor(diff / 86400000));
+}
+
+function getLevel(d) {
+  let lvl = LEVELS[0];
+  for (const l of LEVELS) { if (d >= l.days) lvl = l; else break; }
+  return lvl;
+}
+function getNextLevel(d) {
+  for (const l of LEVELS) { if (d < l.days) return l; }
+  return null;
+}
+
+// Render
+function render() {
+  const start = getStartDate();
+  const d = daysSince(start);
+
+  // Greeting
+  const h = new Date().getHours();
+  const g = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting').textContent = start ? `${g} — you've got this!` : `${g} — ready to start?`;
+
+  // Ring
+  const circ = 2 * Math.PI * 100;
+  const ring = document.getElementById('ring');
+  ring.style.strokeDasharray = circ;
+  const next = getNextLevel(d);
+  const lvl = getLevel(d);
+  let pct = 1;
+  if (next) {
+    const prev = lvl.days;
+    pct = (d - prev) / (next.days - prev);
+  }
+  ring.style.strokeDashoffset = circ * (1 - pct);
+  document.getElementById('days').textContent = d;
+
+  // Level
+  document.getElementById('level-name').textContent = lvl.name;
+  document.getElementById('level-fill').style.width = (pct * 100) + '%';
+  document.getElementById('next-level').textContent = next ? `${next.days} days` : 'Max level!';
+  document.getElementById('level-sub').textContent = lvl.msg;
+
+  // Start / Reset area
+  const area = document.getElementById('start-area');
+  if (!start) {
+    area.innerHTML = '<button class="btn btn-primary" onclick="openDate(false)" style="margin-bottom:16px">🚀 Start My Journey</button>';
+  } else {
+    area.innerHTML = '<div style="display:flex;gap:10px;margin-bottom:16px"><button class="btn btn-outline" style="flex:1" onclick="openDate(true)">📅 Edit Clean Date</button><button class="btn btn-outline" style="flex:1" onclick="openReset()">↩️ Reset</button></div>';
+  }
+
+  // Milestone
+  const mc = document.getElementById('milestone-card');
+  if (next && start) {
+    mc.style.display = '';
+    const left = next.days - d;
+    document.getElementById('milestone-text').textContent = `${left} day${left !== 1 ? 's' : ''} until you reach ${next.name}. Keep pushing!`;
+  } else { mc.style.display = 'none'; }
+
+  // Badges
+  const grid = document.getElementById('badge-grid');
+  grid.innerHTML = BADGES.map(b =>
+    `<div class="badge ${d >= b.days ? 'earned pop' : ''}"><div class="icon">${b.icon}</div><span class="name">${b.name}<br>${b.days}d</span></div>`
+  ).join('');
+
+  renderContacts();
+}
+
+function renderContacts() {
+  const list = document.getElementById('contact-list');
+  const contacts = getContacts();
+  if (!contacts.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📱</div>No contacts yet.<br>Add people you trust to reach out to.</div>';
+    return;
+  }
+  list.innerHTML = contacts.map((c, i) =>
+    `<div class="contact">
+      <div class="avatar">${c.name.charAt(0).toUpperCase()}</div>
+      <div class="info"><div class="cname">${esc(c.name)}</div><div class="cphone">${esc(c.phone)}</div></div>
+      <div class="actions">
+        <a href="tel:${esc(c.phone)}" style="color:var(--accent);padding:4px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></a>
+        <button onclick="editContact(${i})">✏️</button>
+        <button class="del" onclick="deleteContact(${i})">✕</button>
+      </div>
+    </div>`
+  ).join('');
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// Actions
+function openDate(isEdit) {
+  const inp = document.getElementById('inp-date');
+  const today = new Date().toISOString().split('T')[0];
+  inp.max = today;
+  if (isEdit && getStartDate()) {
+    inp.value = new Date(getStartDate()).toISOString().split('T')[0];
+  } else {
+    inp.value = today;
+  }
+  document.getElementById('date-modal-title').textContent = isEdit ? 'Edit Clean Date' : 'Set Your Clean Date';
+  document.getElementById('date-modal').classList.add('open');
+}
+function closeDate() { document.getElementById('date-modal').classList.remove('open'); }
+function saveDate() {
+  const v = document.getElementById('inp-date').value;
+  if (!v) return;
+  setStartDate(new Date(v + 'T00:00:00').toISOString());
+  closeDate();
+  render();
+}
+function openReset() { document.getElementById('reset-modal').classList.add('open'); }
+function closeReset() { document.getElementById('reset-modal').classList.remove('open'); }
+function confirmReset() {
+  const today = new Date().toISOString().split('T')[0];
+  setStartDate(new Date(today + 'T00:00:00').toISOString());
+  closeReset();
+  render();
+}
+
+function openModal(idx) {
+  editIdx = idx !== undefined ? idx : null;
+  const m = document.getElementById('modal');
+  document.getElementById('modal-title').textContent = editIdx !== null ? 'Edit Contact' : 'Add Contact';
+  if (editIdx !== null) {
+    const c = getContacts()[editIdx];
+    document.getElementById('inp-name').value = c.name;
+    document.getElementById('inp-phone').value = c.phone;
+  } else {
+    document.getElementById('inp-name').value = '';
+    document.getElementById('inp-phone').value = '';
+  }
+  m.classList.add('open');
+  setTimeout(() => document.getElementById('inp-name').focus(), 100);
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); editIdx = null; }
+
+function saveContact() {
+  const name = document.getElementById('inp-name').value.trim();
+  const phone = document.getElementById('inp-phone').value.trim();
+  if (!name || !phone) return;
+  const contacts = getContacts();
+  if (editIdx !== null) { contacts[editIdx] = { name, phone }; }
+  else { contacts.push({ name, phone }); }
+  setContacts(contacts);
+  closeModal();
+  renderContacts();
+}
+
+function editContact(i) { openModal(i); }
+function deleteContact(i) {
+  const contacts = getContacts();
+  contacts.splice(i, 1);
+  setContacts(contacts);
+  renderContacts();
+}
+
+// Quotes
+function newQuote() {
+  const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  document.getElementById('quote-text').textContent = `"${q.q}"`;
+  document.getElementById('quote-author').textContent = `— ${q.a}`;
+}
+
+// Nav
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// Init
+newQuote();
+render();
+</script>
+</body>
+</html>
