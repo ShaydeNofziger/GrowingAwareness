@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BetterDays — Your Recovery Companion</title>
+<title>Growing Awareness — Your Recovery Companion</title>
 <style>
   :root {
     --bg: #0f1923; --card: #1a2733; --accent: #4ade80; --accent2: #22d3ee;
@@ -121,7 +121,7 @@
   <!-- HOME -->
   <div class="section active" id="sec-home">
     <div style="text-align:center;margin-top:8px">
-      <div style="font-size:28px;font-weight:800;">🌱 BetterDays</div>
+      <div style="font-size:28px;font-weight:800;">🌱 Growing Awareness</div>
       <div style="font-size:13px;color:var(--muted);margin-top:4px" id="greeting"></div>
     </div>
     <div class="streak-ring">
@@ -582,7 +582,7 @@ function shareCard() {
   ctx.textAlign = 'center';
   ctx.font = '600 22px -apple-system, sans-serif';
   ctx.fillStyle = '#94a3b8';
-  ctx.fillText('🌱 BetterDays', W / 2, 52);
+  ctx.fillText('🌱 Growing Awareness', W / 2, 52);
 
   // Days
   ctx.font = '800 96px -apple-system, sans-serif';
@@ -628,9 +628,9 @@ function shareCard() {
   ctx.fillText('One day at a time 💚', W / 2, H - 30);
 
   c.toBlob(async blob => {
-    const file = new File([blob], 'betterdays-progress.png', { type: 'image/png' });
+    const file = new File([blob], 'growing-awareness-progress.png', { type: 'image/png' });
     if (navigator.canShare?.({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'My BetterDays Progress' }); } catch {}
+      try { await navigator.share({ files: [file], title: 'My Growing Awareness Progress' }); } catch {}
     } else {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
