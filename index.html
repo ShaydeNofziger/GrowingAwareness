@@ -190,7 +190,7 @@
   <div class="modal">
     <h3 id="modal-title">Add Contact</h3>
     <input id="inp-name" placeholder="Name" autocomplete="off"/>
-    <input id="inp-phone" placeholder="Phone number" type="tel" autocomplete="off"/>
+    <input id="inp-phone" placeholder="10-digit phone number" type="tel" maxlength="14" autocomplete="off"/>
     <div class="btn-row">
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveContact()">Save</button>
@@ -373,7 +373,7 @@ function renderContacts() {
   list.innerHTML = contacts.map((c, i) =>
     `<div class="contact">
       <div class="avatar">${c.name.charAt(0).toUpperCase()}</div>
-      <div class="info"><div class="cname">${esc(c.name)}</div><div class="cphone">${esc(c.phone)}</div></div>
+      <div class="info"><div class="cname">${esc(c.name)}</div><div class="cphone">${fmtPhone(c.phone)}</div></div>
       <div class="actions">
         <a href="tel:${esc(c.phone)}" style="color:var(--accent);padding:4px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></a>
         <button onclick="editContact(${i})">✏️</button>
@@ -384,6 +384,7 @@ function renderContacts() {
 }
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function fmtPhone(p) { const d = p.replace(/\D/g, ''); return `(${d.slice(0,3)})-${d.slice(3,6)}-${d.slice(6,10)}`; }
 
 // Actions
 function openDate(isEdit) {
@@ -422,7 +423,7 @@ function openModal(idx) {
   if (editIdx !== null) {
     const c = getContacts()[editIdx];
     document.getElementById('inp-name').value = c.name;
-    document.getElementById('inp-phone').value = c.phone;
+    document.getElementById('inp-phone').value = fmtPhone(c.phone);
   } else {
     document.getElementById('inp-name').value = '';
     document.getElementById('inp-phone').value = '';
@@ -434,8 +435,9 @@ function closeModal() { document.getElementById('modal').classList.remove('open'
 
 function saveContact() {
   const name = document.getElementById('inp-name').value.trim();
-  const phone = document.getElementById('inp-phone').value.trim();
-  if (!name || !phone) return;
+  const phone = document.getElementById('inp-phone').value.replace(/\D/g, '');
+  if (!name || phone.length !== 10) { document.getElementById('inp-phone').style.borderColor = phone.length !== 10 ? '#f87171' : ''; return; }
+  document.getElementById('inp-phone').style.borderColor = '';
   const contacts = getContacts();
   if (editIdx !== null) { contacts[editIdx] = { name, phone }; }
   else { contacts.push({ name, phone }); }
