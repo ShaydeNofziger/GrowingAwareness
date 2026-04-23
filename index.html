@@ -646,7 +646,7 @@ function shareCard() {
 }
 
 // Easter eggs
-const EGG_MILESTONES = [100, 200, 365, 500, 1000, 1825, 3650];
+const EGG_MILESTONES = [1, 100, 200, 365, 500, 1000, 1825, 3650];
 const HOLIDAYS = [
   { m:1, d:1, effect:'confetti', msg:'🎉 Happy New Year! A fresh start.' },
   { m:2, d:14, effect:'hearts', msg:'💕 Happy Valentine\'s Day! Love yourself today.' },
@@ -665,7 +665,7 @@ function checkEasterEggs() {
   // Milestone confetti
   if (getStartDate() && EGG_MILESTONES.includes(d)) {
     const key = 'bd_egg_' + d;
-    if (!ls.getItem(key)) { ls.setItem(key, '1'); runEffect('confetti', `🎊 ${d} days! Incredible milestone!`); return; }
+    if (!ls.getItem(key)) { ls.setItem(key, '1'); runEffect('confetti', d === 1 ? '🌱 Day 1! Your journey begins — we\'re proud of you!' : `🎊 ${d} days! Incredible milestone!`); return; }
   }
 
   // Holiday effects
