@@ -91,7 +91,10 @@
   .helpline a { color: var(--accent); text-decoration: none; font-size: 22px; font-weight: 700; letter-spacing: 1px; }
   .helpline p { font-size: 12px; color: var(--muted); margin-top: 6px; }
 
-  /* Confirm */
+  /* Particles */
+  .particle-layer { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
+  .particle-layer.off { display: none; }
+  .p { position: absolute; }
   .confirm-text { font-size: 14px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
 
   /* Animations */
@@ -117,6 +120,7 @@
 </style>
 </head>
 <body>
+<div class="particle-layer off" id="particles"></div>
 <div class="app">
   <!-- HOME -->
   <div class="section active" id="sec-home">
@@ -641,10 +645,99 @@ function shareCard() {
   }, 'image/png');
 }
 
+// Easter eggs
+const EGG_MILESTONES = [100, 200, 365, 500, 1000, 1825, 3650];
+const HOLIDAYS = [
+  { m:1, d:1, effect:'confetti', msg:'🎉 Happy New Year! A fresh start.' },
+  { m:2, d:14, effect:'hearts', msg:'💕 Happy Valentine\'s Day! Love yourself today.' },
+  { m:3, d:17, effect:'shamrocks', msg:'☘️ Happy St. Patrick\'s Day! Luck is on your side.' },
+  { m:7, d:4, effect:'fireworks', msg:'🎆 Happy 4th of July!' },
+  { m:10, d:31, effect:'spooky', msg:'🎃 Happy Halloween! Nothing scarier than going back.' },
+  { m:12, d:25, effect:'snow', msg:'❄️ Merry Christmas! The best gift is your freedom.' },
+  { m:12, d:31, effect:'confetti', msg:'🥂 Happy New Year\'s Eve! You made it.' },
+];
+
+function checkEasterEggs() {
+  const now = new Date();
+  const mo = now.getMonth() + 1, dy = now.getDate();
+  const d = daysSince(getStartDate());
+
+  // Milestone confetti
+  if (getStartDate() && EGG_MILESTONES.includes(d)) {
+    const key = 'bd_egg_' + d;
+    if (!ls.getItem(key)) { ls.setItem(key, '1'); runEffect('confetti', `🎊 ${d} days! Incredible milestone!`); return; }
+  }
+
+  // Holiday effects
+  const holiday = HOLIDAYS.find(h => h.m === mo && h.d === dy);
+  if (holiday) {
+    const key = 'bd_hol_' + mo + '_' + dy + '_' + now.getFullYear();
+    if (!ls.getItem(key)) { ls.setItem(key, '1'); runEffect(holiday.effect, holiday.msg); }
+  }
+}
+
+function runEffect(type, msg) {
+  const layer = document.getElementById('particles');
+  layer.classList.remove('off');
+  layer.innerHTML = '';
+  const W = window.innerWidth, H = window.innerHeight;
+  const effects = {
+    confetti: () => { for (let i = 0; i < 60; i++) spawn('confetti', ['🎊','🎉','✨','🟡','🔴','🟢','🔵'][i%7], rng(0,W), -20, rng(1,3), rng(3,7)); },
+    snow: () => { for (let i = 0; i < 40; i++) spawn('snow', '❄️', rng(0,W), -20, rng(.5,1.5), rng(2,5)); },
+    fireworks: () => { for (let i = 0; i < 50; i++) spawn('firework', ['🔴','🟡','⚪','🔵','✨'][i%5], rng(W*.2,W*.8), rng(H*.1,H*.5), 0, 0, true); },
+    hearts: () => { for (let i = 0; i < 35; i++) spawn('confetti', ['❤️','💕','💖','💗','💘'][i%5], rng(0,W), -20, rng(1,2.5), rng(3,6)); },
+    shamrocks: () => { for (let i = 0; i < 35; i++) spawn('confetti', ['☘️','🍀','💚','✨'][i%4], rng(0,W), -20, rng(1,2.5), rng(3,6)); },
+    spooky: () => { for (let i = 0; i < 35; i++) spawn('confetti', ['🎃','👻','🦇','🕸️','💀'][i%5], rng(0,W), -20, rng(1,2.5), rng(3,6)); },
+  };
+  (effects[type] || effects.confetti)();
+  if (msg) showEggMsg(msg);
+  setTimeout(() => { layer.classList.add('off'); layer.innerHTML = ''; }, 5000);
+}
+
+function rng(a, b) { return a + Math.random() * (b - a); }
+
+function spawn(cls, ch, x, y, drift, speed, burst) {
+  const el = document.createElement('div');
+  el.className = 'p';
+  el.textContent = ch;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  el.style.fontSize = rng(14, 24) + 'px';
+  el.style.opacity = '1';
+  document.getElementById('particles').appendChild(el);
+  if (burst) {
+    const angle = rng(0, Math.PI * 2), spd = rng(1, 4);
+    const dx = Math.cos(angle) * spd, dy = Math.sin(angle) * spd;
+    animP(el, x, y, dx, dy, true);
+  } else { animP(el, x, y, drift, speed, false); }
+}
+
+function animP(el, x, y, dx, dy, fade) {
+  let t = 0;
+  const id = setInterval(() => {
+    t++;
+    x += dx + Math.sin(t * .05) * .5;
+    y += dy;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    if (fade) el.style.opacity = Math.max(0, 1 - t / 80);
+    if (t > 150 || y > window.innerHeight + 30 || parseFloat(el.style.opacity) <= 0) { el.remove(); clearInterval(id); }
+  }, 25);
+}
+
+function showEggMsg(msg) {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#1a2733;border:1px solid #4ade80;color:#e2e8f0;padding:12px 24px;border-radius:12px;font-size:15px;z-index:60;text-align:center;max-width:90vw;animation:pop .3s ease';
+  d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 4000);
+}
+
 // Init
 newQuote();
 render();
 initCheckin();
+checkEasterEggs();
 </script>
 </body>
 </html>
