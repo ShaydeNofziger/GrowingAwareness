@@ -100,6 +100,20 @@
 
   .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
   .empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* Mood picker */
+  .mood-picker { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+  .mood-btn { font-size: 32px; width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--border); background: var(--bg); cursor: pointer; transition: transform .15s, border-color .2s; display: flex; align-items: center; justify-content: center; }
+  .mood-btn:hover, .mood-btn:active { transform: scale(1.2); border-color: var(--accent); }
+
+  /* Garden */
+  .garden { display: flex; flex-wrap: wrap; gap: 6px; padding: 16px; background: var(--card); border-radius: 16px; min-height: 60px; align-items: flex-end; }
+  .garden-flower { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform .15s; position: relative; }
+  .garden-flower:hover { transform: scale(1.15); }
+  .garden-flower .stem { width: 2px; background: #4ade80; border-radius: 1px; }
+  .garden-flower .bloom { line-height: 1; }
+  .garden-flower .ftip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; font-size: 11px; color: var(--muted); white-space: nowrap; z-index: 5; }
+  .garden-flower.show-tip .ftip { display: block; }
 </style>
 </head>
 <body>
@@ -175,11 +189,29 @@
     <div class="tip-card"><div class="tip-icon">📞</div><div class="tip-text"><strong>Call someone.</strong> Open your Phone List and reach out — you're not alone.</div></div>
     <div class="tip-card"><div class="tip-icon">✍️</div><div class="tip-text"><strong>Write it down.</strong> Journal what triggered the urge. Patterns = power.</div></div>
   </div>
+
+  <!-- CHECK-IN -->
+  <div class="section" id="sec-checkin">
+    <div class="title-row"><h2>🌸 Daily Check-In</h2></div>
+    <div id="checkin-prompt" class="card" style="text-align:center">
+      <p style="font-size:15px;margin-bottom:14px">How are you feeling today?</p>
+      <div class="mood-picker" id="mood-picker"></div>
+    </div>
+    <div id="checkin-done" class="card" style="text-align:center;display:none">
+      <div style="font-size:48px" id="checkin-echo"></div>
+      <p style="margin-top:8px;font-size:14px;color:var(--muted)">Checked in for today — see you tomorrow! 🌱</p>
+    </div>
+    <h3 style="margin:16px 0 8px">Your Garden</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Each flower is a day you checked in. Tap one to see the date.</p>
+    <div class="garden" id="garden"></div>
+    <div id="garden-empty" class="empty" style="display:none"><div class="empty-icon">🌷</div>No check-ins yet.<br>Your garden will bloom here!</div>
+  </div>
 </div>
 
 <!-- Bottom Nav -->
 <nav>
   <button class="active" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 001 1h3m10-11v10a1 1 0 01-1 1h-3m-4 0v-6a1 1 0 011-1h2a1 1 0 011 1v6"/></svg>Home</button>
+  <button data-tab="checkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>Check-In</button>
   <button data-tab="phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Contacts</button>
   <button data-tab="badges"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="6"/><path d="M8.5 14.5L7 22l5-3 5 3-1.5-7.5"/></svg>Badges</button>
   <button data-tab="motivation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>Motivate</button>
@@ -476,6 +508,57 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
 });
 
+// Check-in
+const MOODS = [
+  { emoji: '😄', label: 'Great', size: 20, stem: 32 },
+  { emoji: '🙂', label: 'Good', size: 18, stem: 26 },
+  { emoji: '😐', label: 'Okay', size: 16, stem: 20 },
+  { emoji: '😟', label: 'Tough', size: 14, stem: 16 },
+  { emoji: '😢', label: 'Hard', size: 13, stem: 12 },
+];
+function getCheckins() { return JSON.parse(ls.getItem('bd_checkins') || '{}'); }
+function setCheckins(c) { ls.setItem('bd_checkins', JSON.stringify(c)); }
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+
+function initCheckin() {
+  const picker = document.getElementById('mood-picker');
+  picker.innerHTML = MOODS.map((m, i) =>
+    `<button class="mood-btn" onclick="doCheckin(${i})" title="${m.label}">${m.emoji}</button>`
+  ).join('');
+  const checkins = getCheckins();
+  const done = checkins[todayKey()] !== undefined;
+  document.getElementById('checkin-prompt').style.display = done ? 'none' : '';
+  document.getElementById('checkin-done').style.display = done ? '' : 'none';
+  if (done) document.getElementById('checkin-echo').textContent = MOODS[checkins[todayKey()]].emoji;
+  renderGarden();
+}
+
+function doCheckin(idx) {
+  const checkins = getCheckins();
+  checkins[todayKey()] = idx;
+  setCheckins(checkins);
+  initCheckin();
+}
+
+function renderGarden() {
+  const checkins = getCheckins();
+  const keys = Object.keys(checkins).sort();
+  const garden = document.getElementById('garden');
+  const empty = document.getElementById('garden-empty');
+  if (!keys.length) { garden.style.display = 'none'; empty.style.display = ''; return; }
+  garden.style.display = ''; empty.style.display = 'none';
+  garden.innerHTML = keys.map(k => {
+    const m = MOODS[checkins[k]] || MOODS[2];
+    const d = new Date(k + 'T00:00:00');
+    const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' — ' + m.label;
+    return `<div class="garden-flower" onclick="this.classList.toggle('show-tip')">
+      <div class="ftip">${label}</div>
+      <div class="bloom" style="font-size:${m.size}px">${m.emoji}</div>
+      <div class="stem" style="height:${m.stem}px"></div>
+    </div>`;
+  }).join('');
+}
+
 // Share card
 function shareCard() {
   const d = daysSince(getStartDate());
@@ -561,6 +644,7 @@ function shareCard() {
 // Init
 newQuote();
 render();
+initCheckin();
 </script>
 </body>
 </html>
