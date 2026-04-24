@@ -2,7 +2,7 @@
 
 **Your Recovery Companion** — a free, private, mobile-friendly web app for people on a gambling-free journey.
 
-🔗 **Live app:** [ga.shayde.me](https://ga.shayde.me)
+🔗 **Live app:** [growing-awareness.com](https://growing-awareness.com/)
 
 ---
 
